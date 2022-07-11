@@ -1,116 +1,68 @@
-void Pioes_Muoes_Outras(TString ficheiroLido){
+void Pioes_Muoes_Outras(){
+//seleção ficheiro de dados
+TFile *f = new TFile("AmberTarget_Run_1.root","READ");
+
+// seleção da arvore dos dados
+TTree *dados = (TTree*)f->Get("tracksData");
+
+// nHistos representa o histograma dos pioes, muoes e outras particulas, que são 3.
+Int_t nHistos = 3;
+// temos quatro detetores
+Int_t nDetetores = 4;
+
+Int_t nBins=500;
+Double_t minBin=0;
+Double_t maxBin=240000;
+
+// O Canvas vai ser dividido em 4, uma vez que temos quatro detetores 
+TCanvas *cs = new TCanvas("Energia depositada de particulas nos detetores","Energia depositada de particulas nos detetores");
+TText T; T.SetTextFont(42); T.SetTextAlign(21);
+cs->Divide(2,2);
+
+// o histoDetetor é uma matriz em que cada linha contém histogramas dos pioes, muoes e outras particulas de um detetor
+TH1F *histoDetetor [nDetetores][nHistos];
+// a stack vai servir para analisar a quantidade de particulas e a energia depositada entre muoes, pioes e outras particulas no mesmo detetor 
+THStack *hs [nDetetores];
 
 
-//Seleção de ficheiros a ler assim como escrever
-TFile *ficheiro = new TFile("AmberTarget_Run_0.root","READ");
-TString novoFicheiro = ficheiroLido;
-novoFicheiro.ReplaceAll("AmberTarget_Run_","Analise_Pioes_Muoes_Outras_");
+//o ciclo for vai percorrer os detetores
+for (Int_t i = 0; i < nDetetores; i++){
+	cs->cd(i+1);
+	TString graphName = "Detector " + TString::Itoa(i, 10); // construção da string para o titulo da stack
+	TString branchName = "EdepDet" + TString::Itoa(i, 10) + "_keV"; // contrução da string para a branch, que neste caso é o detetor
+	hs[i] = new THStack("hs",graphName+";log(Tempo (ns));log(Energia (keV))");
+	// construção das strings para os titulos dos histogramas dos pioes, muoes e outras particulas
+	TString pioes = "Pioes " + TString::Itoa(i, 10);
+	TString muoes = "Muoes " + TString::Itoa(i, 10);
+	TString outras = "Outras " + TString::Itoa(i, 10);
+	// obtenção dos dados para o detetor i, e a seleção dos pioes entre as restantes particulas utilizando a branch particlePDG
+	histoDetetor[i][0] = new TH1F(pioes,pioes,nBins,minBin,maxBin);
+	dados->Draw(branchName + ">>" + pioes,"particlePDG==211 || particlePDG==-211 && "+branchName+">10");
+	histoDetetor[i][0]->SetLineWidth(2);
+	histoDetetor[i][0]->SetLineColor(1);
+	// obtenção dos dados para o detetor i, e a seleção dos muoes entre as restantes particulas utilizando a branch particlePDG
+	histoDetetor[i][1] = new TH1F(muoes,muoes,nBins,minBin,maxBin);
+	dados->Draw(branchName + ">>" + muoes,"particlePDG==13 || particlePDG==-13 && "+branchName+">10");
+	histoDetetor[i][1]->SetLineWidth(2);
+	histoDetetor[i][1]->SetLineColor(2);
+	// obtenção dos dados para o detetor i, e a seleção das particulas que não são muoes nem pioes utilizando a branch particlePDG
+	histoDetetor[i][2] = new TH1F(outras,outras,nBins,minBin,maxBin);
+	dados->Draw(branchName + ">>" + outras,"particlePDG!=13 || particlePDG!=-13 || particlePDG!=211 || particlePDG!=-211 && "+branchName+">10");
+	histoDetetor[i][2]->SetLineWidth(2);
+	histoDetetor[i][2]->SetLineColor(3);
+	// adicionamos os histogramas á stack
+	hs[i]->Add(histoDetetor[i][2]);
+	hs[i]->Add(histoDetetor[i][0]);
+	hs[i]->Add(histoDetetor[i][1]);
+	// legenda da stack
+   	auto legend = new TLegend(0.1,0.7,0.48,0.9);
+   	legend->AddEntry(histoDetetor[i][0],"Pioes","l");
+   	legend->AddEntry(histoDetetor[i][1],"Muoes","l");
+   	legend->AddEntry(histoDetetor[i][2],"Outras","l");
+	hs[i]->Draw("nostack");
+	gPad->SetLogy(); // colocar o eixo y na escala logaritmica
+	gPad->SetLogx(); // colocar o eixo x na escala logaritmica
+	legend->Draw();
 	
-TFile *ficheiroGravar = new TFile(novoFicheiro,"RECREATE");
-TTree *dados = (TTree*) ficheiro->Get("tracksData");/*Seleção da árvore tracksData em que iremos buscar a branche EdepDet[0:4]_keV que contém as energias depositadas dos detetores, também usamos particlePDG que irá ser útil para verificar se a particula é um muão ou um pião, ou nenhum destes*/
-
-
-    
-Int_t nBins = 100; 
-Double_t minBin = 0.0;
-Double_t maxBinP = 80000;
-Double_t maxBinM = 18000;
-Double_t maxBinO=90000;
- 
-        
-Int_t nHistos = 4;
-
-//PIÕES
-TCanvas *canvasPioes = new TCanvas("canvasPioes", novoFicheiro, 900, 700);;
-TH1D* histo_Pioes[nHistos];
-gStyle->SetOptStat(0);
-canvasPioes->Divide(2,2,0,0);
-
-TString canvasNamePioes;
-TString folhaNamePioes;
-
-
-//Percorremos os histogramas em que cada histograma é de um determinado detetor, depois selecionamos o detetor, construindo a string da branch, e selecionamos os piões usando dados da particlePDG
-for(Int_t i = 0; i < nHistos; i++){
-	TString HistoNome = "HistoDetector" + TString::Itoa(i, 10);
-	histo_Pioes[i] = new TH1D(HistoNome, HistoNome, nBins, minBin, maxBinP);
-	folhaNamePioes = "EdepDet" + TString::Itoa(i, 10) + "_keV"; //Construção da string da branch da energia depositada do respetivo detetor
-	canvasNamePioes = "canvasPioes_Detetor_" + TString::Itoa(i, 10);
-	canvasPioes->cd(i+1);
-	
-	dados->Draw(folhaNamePioes + ">>" + HistoNome, "particlePDG==211 || particlePDG==-211 && " + folhaNamePioes + ">10"); // Filtramos os piões da EdepDet com as condições particlePDG == 211 ou particlePDG == -211
-	histo_Pioes[i]->SetFillColor(i+1);
-       	histo_Pioes[i]->Write();
-        histo_Pioes[i]->SetTitle("Pioes -> Detector" + TString::Itoa(i, 10) + "; log(EdepDet0_keV)");
-        gPad->SetLogy();//Escala logaritmica
-        TF1 *landouFitPioes = new TF1 ("landouFitPioes", "landau", 0, 30000);
-        histo_Pioes[i]->Fit("landouFitPioes");
-	
-	}
-
-
-        
-//MUÕES	
-TCanvas *canvasMuoes = new TCanvas("canvasMuoes", novoFicheiro, 900, 700);
-TH1D* histo_Muoes[nHistos];
-gStyle->SetOptStat(0);
-canvasMuoes->Divide(2,2,0,0);
-
-TString canvasNameMuoes;
-TString folhaNameMuoes;
-	
-	
-for(Int_t i = 0; i < nHistos; i++){
-	
-	TString HistoNome = "HistoDetector" + TString::Itoa(i, 10);
-	histo_Muoes[i] = new TH1D(HistoNome, HistoNome, nBins, minBin, maxBinM);
-	folhaNameMuoes = "EdepDet" + TString::Itoa(i, 10) + "_keV";//Construção da string da branch da energia depositada do respetivo detetor
-	canvasNameMuoes = "canvasMuoes_Detetor_" + TString::Itoa(i, 10);
-	canvasMuoes->cd(i+1);
-	
-	dados->Draw(folhaNameMuoes + ">>" + HistoNome, "particlePDG==13 || particlePDG==-13 && "+folhaNameMuoes+">10");// Filtramos os muões da EdepDet com as condições particlePDG == 13 ou particlePDG == -13
-	histo_Muoes[i]->SetFillColor(i+1);
-    	histo_Muoes[i]->Write();
-    	histo_Muoes[i]->SetTitle("Muoes -> Detetor" + TString::Itoa(i, 10) + "; log(EdepDet0_keV)");
-    	gPad->SetLogy();//Escala logaritmica
-        TF1 *landouFitMuoes = new TF1 ("landouFitMuoes", "landau", 0, 30000);
-       	histo_Muoes[i]->Fit("landouFitMuoes");
-	}
-
-
-
-//OUTRAS PARTICULAS  
-TCanvas *canvasOutras = new TCanvas("canvasOutras", novoFicheiro, 900, 700); 
-TH1D* histo_Outras[nHistos];
-gStyle->SetOptStat(0);
-canvasOutras->Divide(2,2,0,0);
-
-TString canvasNameOutras;
-TString folhaNameOutras;
-
-
-
-for(Int_t i = 0; i < nHistos; i++){
-	
-	TString HistoNome = "HistoDetector" + TString::Itoa(i, 10);
-	histo_Outras[i] = new TH1D(HistoNome, HistoNome, nBins, minBin, maxBinO);
-	folhaNameOutras= "EdepDet" + TString::Itoa(i, 10) + "_keV";//Construção da string da branch da energia depositada do respetivo detetor
-	canvasNameOutras = "canvasOutras_Detetor_" + TString::Itoa(i, 10);
-	canvasOutras->cd(i+1);
-	
-	dados->Draw(folhaNameOutras + ">>" + HistoNome, "particlePDG!=13 || particlePDG!=-13 || particlePDG!=211 || particlePDG!=-211");// Filtramos as restantes particulas da EdepDet com as condições de não serem nem muões nem piões
-	histo_Outras[i]->SetFillColor(i+1);
-       	histo_Outras[i]->Write();
-        histo_Outras[i]->SetTitle("Outras -> Detetor" + TString::Itoa(i, 10) + "; log(EdepDet0_keV)");
-        gPad->SetLogy();//Escala logaritmica
-        //TF1 *landouFiOutras = new TF1 ("landouFitOutras", "landau", 0, 30000);
-       	//histo_Outras[i]->Fit("landouFitOutras");
-	
-	
-	}
-
-		
 }
-
-
-
+}
