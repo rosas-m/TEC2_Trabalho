@@ -1,44 +1,38 @@
-void Histogramas_Dep_Per_Event(TString ficheiroLido){
+void Histogramas_Dep_Per_Event(){
+// ficheiro de dados
+TFile *f = new TFile("AmberTarget_Run_1.root","READ");
+// seleção da arvore dos dados
+TTree *dados = (TTree*)f->Get("edep_Per_Event");
 
-//Seleção de ficheiros a ler assim como escrever*
-TFile *ficheiro = new TFile("AmberTarget_Run_0.root","READ");
-	
-TString novoFicheiro = ficheiroLido;
-novoFicheiro.ReplaceAll("AmberTarget_Run_","Analise_Histogramas_Dep_Per_Event_");
-
-
-TFile *ficheiroGravar = new TFile(novoFicheiro, "RECREATE");
-
-
-
-TTree *dados = (TTree*)ficheiro->Get("edep_Per_Event"); /*Seleção da árvore edep_per_event em que iremos buscar os dados de energia depositada por evento*/
-
+// array dos histogramas, um histograma para cada detetor
+Int_t nHistos = 4;
+TH1F *histoDetetor [nHistos];
 
 Int_t nBins=500;
-Double_t minBin=0.0;
+Double_t minBin=0;
 Double_t maxBin=400000;
 
-Int_t nHistos=4;
-TH1D* histoDetetor[nHistos]; //array com os histogramas
+// criação da stack, onde iremos agrupar os histogramas
+THStack *hs = new THStack("hs","Energia depositada por evento;log(ID do Evento); log(Energia)");
+TCanvas *cs = new TCanvas("Energia depositada por evento","Energia depositada por evento",10,10,700,500);
+TText T; T.SetTextFont(42); T.SetTextAlign(21);
 
-
-TCanvas *canvas = new TCanvas("canvas", novoFicheiro, 900, 700);
-	gStyle->SetOptStat(0);
-	canvas->Divide(2,2,0,0);
-TString branchName;
-
-
-/*Para fazer o histograma para cada detetor, a cada iteração iremos selecionar a branch do respetivo detetor, e obter os eventos do mesmo
-depois desenhamos o histograma que está num array com dimensão igual ao nº de detetores*/
-for (Int_t i=0;i<nHistos;i++){
-	TString histoName="Histogramas_Dep_Per_Event Detector"+TString::Itoa(i,10); 
-	histoDetetor[i]=new TH1D (histoName,histoName,nBins,minBin,maxBin); /*Criar histograma*/
-	branchName="detector"+TString::Itoa(i,10); //Definir o nome a branch
-	canvas->cd(i+1);
-	dados->Draw(branchName+">>"+histoName,branchName+">0");
-	histoDetetor[i]->SetTitle(histoName);
+for (Int_t i = 0; i < nHistos; i++)
+{
+	TString graphName = "Detector " + TString::Itoa(i, 10); // construção da string para o titulo do histograma
+	TString branchName = "detector" + TString::Itoa(i, 10); // contrução da string para a branch, neste caso é o detetor
+	// criação do histograma, e adição deste à stack
+	histoDetetor[i] = new TH1F(graphName,graphName,nBins,minBin,maxBin);
+	dados->Draw(branchName + ">>" + graphName);
 	histoDetetor[i]->SetLineColor(i+1);
-	histoDetetor[i]->Write();
-
-	}
+	histoDetetor[i]->SetLineWidth(2);
+	hs->Add(histoDetetor[i]);
 }
+
+hs->Draw("nostack");
+gPad->SetLogy();
+gPad->SetLogx();
+cs->BuildLegend();
+
+}
+
