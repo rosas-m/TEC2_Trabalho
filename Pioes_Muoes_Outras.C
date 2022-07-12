@@ -1,6 +1,11 @@
-void Pioes_Muoes_Outras(){
+void Pioes_Muoes_Outras(TString root_file){
 //seleção ficheiro de dados
 TFile *f = new TFile("AmberTarget_Run_1.root","READ");
+
+TString root_file_save = "Edep_per_particle"+root_file(15,16)+".root"; // criação da string para criar ficheiros root para cada ficheiro AmberTarget
+
+// ficheiro onde iremos gravar os histogramas
+TFile *ficheiroGravar = new TFile(root_file_save,"RECREATE");
 
 // seleção da arvore dos dados
 TTree *dados = (TTree*)f->Get("tracksData");
@@ -32,9 +37,9 @@ for (Int_t i = 0; i < nDetetores; i++){
 	TString branchName = "EdepDet" + TString::Itoa(i, 10) + "_keV"; // contrução da string para a branch, que neste caso é o detetor
 	hs[i] = new THStack("hs",graphName+";log(Tempo (ns));log(Energia (keV))");
 	// construção das strings para os titulos dos histogramas dos pioes, muoes e outras particulas
-	TString pioes = "Pioes " + TString::Itoa(i, 10);
-	TString muoes = "Muoes " + TString::Itoa(i, 10);
-	TString outras = "Outras " + TString::Itoa(i, 10);
+	TString pioes = "Pioes no Detetor" + TString::Itoa(i, 10);
+	TString muoes = "Muoes no Detetor" + TString::Itoa(i, 10);
+	TString outras = "Outras no Detetor" + TString::Itoa(i, 10);
 	// obtenção dos dados para o detetor i, e a seleção dos pioes entre as restantes particulas utilizando a branch particlePDG
 	histoDetetor[i][0] = new TH1F(pioes,pioes,nBins,minBin,maxBin);
 	dados->Draw(branchName + ">>" + pioes,"particlePDG==211 || particlePDG==-211 && "+branchName+">10");
@@ -63,6 +68,10 @@ for (Int_t i = 0; i < nDetetores; i++){
 	gPad->SetLogy(); // colocar o eixo y na escala logaritmica
 	gPad->SetLogx(); // colocar o eixo x na escala logaritmica
 	legend->Draw();
+	// guardar os histogramas num ficheiro root
+	histoDetetor[i][0]->Write();
+	histoDetetor[i][1]->Write();
+	histoDetetor[i][2]->Write();
 	
 }
 }

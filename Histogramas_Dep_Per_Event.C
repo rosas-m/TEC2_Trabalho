@@ -1,6 +1,13 @@
-void Histogramas_Dep_Per_Event(){
+void Histogramas_Dep_Per_Event(TString root_file){
+
 // ficheiro de dados
-TFile *f = new TFile("AmberTarget_Run_1.root","READ");
+TFile *f = new TFile(root_file,"READ");
+
+TString root_file_save = "Edep_per_event"+root_file(15,16)+".root"; // criação da string para criar ficheiros root para cada ficheiro AmberTarget
+
+// ficheiro onde iremos gravar os histogramas
+TFile *ficheiroGravar = new TFile(root_file_save,"RECREATE");
+
 // seleção da arvore dos dados
 TTree *dados = (TTree*)f->Get("edep_Per_Event");
 
@@ -13,7 +20,7 @@ Double_t minBin=0;
 Double_t maxBin=400000;
 
 // criação da stack, onde iremos agrupar os histogramas
-THStack *hs = new THStack("hs","Energia depositada por evento;log(ID do Evento); log(Energia)");
+THStack *hs = new THStack("hs","Energia depositada por evento;log(ID do evento); log(Energia (keV)");
 TCanvas *cs = new TCanvas("Energia depositada por evento","Energia depositada por evento",10,10,700,500);
 TText T; T.SetTextFont(42); T.SetTextAlign(21);
 
@@ -27,6 +34,7 @@ for (Int_t i = 0; i < nHistos; i++)
 	histoDetetor[i]->SetLineColor(i+1);
 	histoDetetor[i]->SetLineWidth(2);
 	hs->Add(histoDetetor[i]);
+	histoDetetor[i]->Write(); // guardar o histograma num ficheiro root
 }
 
 hs->Draw("nostack");

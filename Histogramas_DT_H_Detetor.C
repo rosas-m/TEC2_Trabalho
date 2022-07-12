@@ -1,8 +1,12 @@
-void Histogramas_DT_H_Detetor(){ 
+void Histogramas_DT_H_Detetor(TString root_file){ 
 
 // Seleção dos ficheiro de dados
 TFile *f = new TFile("AmberTarget_Run_1.root","READ");
 
+TString root_file_save = "Distribuicao_temporal_Detetores"+root_file(15,16)+".root"; // criação da string para criar ficheiros root para cada ficheiro AmberTarget
+
+// ficheiro onde iremos gravar os histogramas
+TFile *ficheiroGravar = new TFile(root_file_save,"RECREATE");
 
 // Seleção da árvore onde estão os hits temporais
 TTree *dados = (TTree*)f->Get("Hits");
@@ -56,6 +60,7 @@ for (Int_t i = 0; i < nHistos;i++)
 	histoDetetor[i]->SetFillColor(i+1);
 	histoDetetor[i]->SetLineColor(i+1);
 	hs->Add(histoDetetor[i]);
+	histoDetetor[i]->Write(); // guardar os histogramas no ficheiro root
 }
 hs->Draw("noclear");
 cs->BuildLegend();

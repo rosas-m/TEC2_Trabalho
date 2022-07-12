@@ -1,10 +1,13 @@
-void Histogramas_VH_PS_EmZ(){
+void Histogramas_VH_PS_EmZ(TString root_file){
 
 //Seleção de ficheiros a ler assim como escrever
 TFile *ficheiro = new TFile("AmberTarget_Run_0.root","READ");
 
-	
-TFile *ficheiroGravar = new TFile("Vertex.root","RECREATE");
+TString root_file_save = "Hadronic_vertex"+root_file(15,16)+".root"; // criação da string para criar ficheiros root para cada ficheiro AmberTarget
+
+// ficheiro onde iremos gravar os histogramas
+TFile *ficheiroGravar = new TFile(root_file_save,"RECREATE");
+
 TTree *dados = (TTree*) ficheiro->Get("hadronicVertex");/*Selecionamos a árvore hadronicVertex em que iremos utilizar as branches vertexPoxZ_com para obter a posição do vertex no eixo Z, e a branch IsPrimary para diferenciar os vertex hadrónico primários dos secundários*/
 
 	
@@ -49,10 +52,11 @@ for (Int_t i = 0; i < Nentries; i++)
 }
 
 // agregação dos histogramas no mesmo grafico utilizando uma THStack
-THStack* hs = new THStack("hs","Hadronic Vertex;Posicao de Z (cm); Quantidade");
+THStack* hs = new THStack("hs","Hadronic Vertex;Posicao de Z (cm); tempo (ns)");
 hs->Add(histogramas[0]);
 hs->Add(histogramas[1]);
 
 hs->Draw("nostack");
 cs->BuildLegend();
+hs->Write();
 }

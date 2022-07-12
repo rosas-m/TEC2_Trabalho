@@ -1,9 +1,12 @@
-void Histogramas_ETotal_Particula(){
+void Histogramas_ETotal_Particula(TString root_file){
 
 //Seleção de ficheiros a ler assim como escrever
 TFile *ficheiro = new TFile("AmberTarget_Run_0.root","READ");
 
-TFile *ficheiroGravar = new TFile("energia_por_particula.root","RECREATE");
+TString root_file_save = "Energia_Total_particula"+root_file(15,16)+".root"; // criação da string para criar ficheiros root para cada ficheiro AmberTarget
+
+// ficheiro onde iremos gravar os histogramas
+TFile *ficheiroGravar = new TFile(root_file_save,"RECREATE");
 
 TTree *dados = (TTree*) ficheiro->Get("tracksData");/*Seleção da árvore tracksData em que iremos buscar as branches EdepDet[0:4]_keV, que contém as energias depositadas dos detetores, também usamos particlePDG que irá ser útil para verificar se a particula é um muão, pião ou outra particula*/
 
@@ -65,27 +68,29 @@ THStack *hs = new THStack("hs","Energia depositada por particulas;log(tempo(ns))
 TH1D* histo_Pioes = new TH1D("Pioes", "Pioes", nBins, minBin, maxBinP);
 newTree->Draw("soma>>Pioes", "particlePDGNew==211 || particlePDGNew==-211"); //Seleção da energia total dos piões, utilizando a condição particlePDGNew == 211 ou particlePDGNew == -211
 histo_Pioes->SetLineColor(1);
-histo_Pioes->Write();
 hs->Add(histo_Pioes);
 
 //MUÕES
 TH1D* histo_Muoes = new TH1D("Muoes", "Muoes", nBins, minBin, maxBinM);
 newTree->Draw("soma>>Muoes", "particlePDGNew==13 || particlePDGNew==-13"); //Seleção da energia total dos muões, utilizando a condição particlePDGNew == -13 ou particlePDGNew == 13
 histo_Muoes->SetLineColor(2);
-histo_Muoes->Write();
 hs->Add(histo_Muoes);
 	
 //OUTRAS PARTICULAS
 TH1D* histo_Outras = new TH1D("Outras Particulas", "Outras Particulas", nBins, minBin, maxBinO);
 newTree->Draw("soma>>Outras Particulas", "particlePDGNew != 13 || particlePDGNew !=-13 || particlePDGNew !=211 || particlePDGNew !=-211");//Seleção da energia total das restantes particulas, utilizando as condições particlePDGNew != -13 ou particlePDGNew != 13 ou particlePDGNew != 211 ou particlePDGNew != -211, que são todas as particulas que não são muões ou piões
 histo_Outras->SetLineColor(3);
-histo_Outras->Write();
 hs->Add(histo_Outras);
 
 hs->Draw("nostack");
 gPad->SetLogy();
 gPad->SetLogx();
 cs->BuildLegend();
+
+// Salvar os histogramas num ficheiro root
+histo_Pioes->Write();
+histo_Muoes->Write();
+histo_Outras->Write();
 
 
 }
