@@ -1,11 +1,13 @@
-void Histogramas_ETotal_Particula(TString ficheiroLido){
+void Histogramas_ETotal_Particula(TString root_file){
 
 //Seleção de ficheiros a ler assim como escrever
 TFile *ficheiro = new TFile("AmberTarget_Run_0.root","READ");
-TString novoFicheiro = ficheiroLido;
-novoFicheiro.ReplaceAll("AmberTarget_Run_","Analise_Histogramas_ETotal_Particula_");
-	
-TFile *ficheiroGravar = new TFile(novoFicheiro,"RECREATE");
+
+TString root_file_save = "Energia_Total_particula"+root_file(15,16)+".root"; // criação da string para criar ficheiros root para cada ficheiro AmberTarget
+
+// ficheiro onde iremos gravar os histogramas
+TFile *ficheiroGravar = new TFile(root_file_save,"RECREATE");
+
 TTree *dados = (TTree*) ficheiro->Get("tracksData");/*Seleção da árvore tracksData em que iremos buscar as branches EdepDet[0:4]_keV, que contém as energias depositadas dos detetores, também usamos particlePDG que irá ser útil para verificar se a particula é um muão, pião ou outra particula*/
 
 Int_t particlePDG;
@@ -48,64 +50,47 @@ newTree->Branch("particlePDGNew", &particlePDGNew, "particlePDGNew/I");
 Long64_t Nentries = dados->GetEntries(); //Obter o numero de entradas na arvore tracksData
 
 /*Vamos percorrer as entradas*/
-for(Int_t i = 0; i < Nentries; i++){
-		
+for(Int_t i = 0; i < Nentries; i++)
+{		
 	dados->GetEntry(i);
 	soma = EdepDet0_keV + EdepDet1_keV + EdepDet2_keV + EdepDet3_keV; //Faz a soma das energias dos detetores
 	particlePDGNew =  particlePDG;//Seleciona o ID da particula
-	newTree->Fill(); //Guardamos os valores numa arvore
-			
-	}
-	
+	newTree->Fill(); //Guardamos os valores numa arvore			
+}	
 newTree->Write();
 
 	
-TCanvas *canvas = new TCanvas("c1", novoFicheiro, 1800, 700);
-gStyle->SetOptStat(0);
-canvas->Divide(3,1,0,0);
-
+TCanvas *cs = new TCanvas("Energia total depositada", "Energia total depositada");
+// A THStack irá servir para agregar os histogramas dos pioes, muoes e outras particulas no mesmo grafico
+THStack *hs = new THStack("hs","Energia depositada por particulas;log(tempo(ns)); log(Energia (keV)");
 
 //PIÕES
-TString HistoNomeP = "HistoNomeP";
-TH1D* histo_Pioes = new TH1D(HistoNomeP, HistoNomeP, nBins, minBin, maxBinP);
-TString canvasPioes = "Histograma da energia total dos Pioes";
-canvas->cd(1);
+TH1D* histo_Pioes = new TH1D("Pioes", "Pioes", nBins, minBin, maxBinP);
+newTree->Draw("soma>>Pioes", "particlePDGNew==211 || particlePDGNew==-211"); //Seleção da energia total dos piões, utilizando a condição particlePDGNew == 211 ou particlePDGNew == -211
+histo_Pioes->SetLineColor(1);
+hs->Add(histo_Pioes);
 
-newTree->Draw("soma>>HistoNomeP", "particlePDGNew==211 || particlePDGNew==-211"); //Seleção da energia total dos piões, utilizando a condição particlePDGNew == 211 (para os positivos) ou particlePDGNew == -211 (para os negativos)
-histo_Pioes->SetFillColor(1);
-histo_Pioes->Write();
-histo_Pioes->SetTitle("Energia Total Pioes");
-gPad->SetLogy();//Selecionar escala logaritmica
-TF1 *landouFitPioes = new TF1 ("landouFitPioes", "landau", 0, 30000);
-histo_Pioes->Fit("landouFitPioes");
-	
-	
 //MUÕES
-TString HistoNomeM = "HistoNomeM";
-TH1D* histo_muoes = new TH1D(HistoNomeM, HistoNomeM, nBins, minBin, maxBinM);
-TString canvasMuoes = "Histograma da energia total dos Muoes";
-canvas->cd(2);
-
-newTree->Draw("soma>>HistoNomeM", "particlePDGNew==13 || particlePDGNew==-13"); //Seleção da energia total dos muões, utilizando a condição particlePDGNew == -13 (para os positivos) ou particlePDGNew == 13 (para os negativos)
-histo_muoes->SetFillColor(3);
-	histo_muoes->Write();
-histo_muoes->SetTitle("Energia Total Muoes");
-gPad->SetLogy();//Selecionar escala logaritmica
-TF1 *landouFitMuoes = new TF1 ("landouFitMuoes", "landau", 0, 30000);
-histo_muoes->Fit("landouFitMuoes");
-
+TH1D* histo_Muoes = new TH1D("Muoes", "Muoes", nBins, minBin, maxBinM);
+newTree->Draw("soma>>Muoes", "particlePDGNew==13 || particlePDGNew==-13"); //Seleção da energia total dos muões, utilizando a condição particlePDGNew == -13 ou particlePDGNew == 13
+histo_Muoes->SetLineColor(2);
+hs->Add(histo_Muoes);
 	
 //OUTRAS PARTICULAS
-TString HistoNomeO = "HistoNomeO";
-TH1D* histo_outras = new TH1D(HistoNomeO, HistoNomeO, nBins, minBin, maxBinO);
-TString canvasOutras = "Histograma da energia total das outras particulas";
-canvas->cd(3);
+TH1D* histo_Outras = new TH1D("Outras Particulas", "Outras Particulas", nBins, minBin, maxBinO);
+newTree->Draw("soma>>Outras Particulas", "particlePDGNew != 13 || particlePDGNew !=-13 || particlePDGNew !=211 || particlePDGNew !=-211");//Seleção da energia total das restantes particulas, utilizando as condições particlePDGNew != -13 ou particlePDGNew != 13 ou particlePDGNew != 211 ou particlePDGNew != -211, que são todas as particulas que não são muões ou piões
+histo_Outras->SetLineColor(3);
+hs->Add(histo_Outras);
 
-newTree->Draw("soma>>HistoNomeO", "particlePDGNew != 13 || particlePDGNew !=-13 || particlePDGNew !=211 || particlePDGNew !=-211");//Seleção da energia total das restantes particulas, utilizando as condições particlePDGNew != -13 ou particlePDGNew != 13 ou particlePDGNew != 211 ou particlePDGNew != -211, que são todas as particulas que não são muões ou piões
-histo_outras->SetFillColor(2);
-histo_outras->Write();
-histo_outras->SetTitle("Energia Total Outras Particulas");
-gPad->SetLogy();//Selecionar escala logaritmica
+hs->Draw("nostack");
+gPad->SetLogy();
+gPad->SetLogx();
+cs->BuildLegend();
+
+// Salvar os histogramas num ficheiro root
+histo_Pioes->Write();
+histo_Muoes->Write();
+histo_Outras->Write();
 
 
 }
