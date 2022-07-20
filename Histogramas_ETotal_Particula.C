@@ -1,9 +1,9 @@
 void Histogramas_ETotal_Particula(TString root_file){
 
 //Seleção de ficheiros a ler assim como escrever
-TFile *ficheiro = new TFile("AmberTarget_Run_0.root","READ");
+TFile *ficheiro = new TFile(root_file,"READ");
 
-TString root_file_save = "Energia_Total_particula"+root_file(15,16)+".root"; // criação da string para criar ficheiros root para cada ficheiro AmberTarget
+TString root_file_save = "Energia_Total_Particula"+root_file(15,16); // criação da string para criar ficheiros root para cada ficheiro AmberTarget
 
 // ficheiro onde iremos gravar os histogramas
 TFile *ficheiroGravar = new TFile(root_file_save,"RECREATE");
@@ -62,7 +62,7 @@ newTree->Write();
 	
 TCanvas *cs = new TCanvas("Energia total depositada", "Energia total depositada");
 // A THStack irá servir para agregar os histogramas dos pioes, muoes e outras particulas no mesmo grafico
-THStack *hs = new THStack("hs","Energia depositada por particulas;log(tempo(ns)); log(Energia (keV)");
+THStack *hs = new THStack("hs","Energia depositada por particulas; log(Energia eV); log(Quantidade da particula)");
 
 //PIÕES
 TH1D* histo_Pioes = new TH1D("Pioes", "Pioes", nBins, minBin, maxBinP);
@@ -81,16 +81,20 @@ TH1D* histo_Outras = new TH1D("Outras Particulas", "Outras Particulas", nBins, m
 newTree->Draw("soma>>Outras Particulas", "particlePDGNew != 13 || particlePDGNew !=-13 || particlePDGNew !=211 || particlePDGNew !=-211");//Seleção da energia total das restantes particulas, utilizando as condições particlePDGNew != -13 ou particlePDGNew != 13 ou particlePDGNew != 211 ou particlePDGNew != -211, que são todas as particulas que não são muões ou piões
 histo_Outras->SetLineColor(3);
 hs->Add(histo_Outras);
-
+auto legend = new TLegend(0.7,0.7,0.9,0.9);
+legend->AddEntry(histo_Pioes,"Pioes","l");
+legend->AddEntry(histo_Muoes,"Muoes","l");
+legend->AddEntry(histo_Outras,"Outras","l");
 hs->Draw("nostack");
 gPad->SetLogy();
 gPad->SetLogx();
-cs->BuildLegend();
+legend->Draw();
 
 // Salvar os histogramas num ficheiro root
 histo_Pioes->Write();
 histo_Muoes->Write();
 histo_Outras->Write();
 
+cs->SaveAs("/home/rosas/Desktop/TEC2_Trabalho/Graphs/Energia_Total_Particula"+root_file(15,16)+".png");
 
 }

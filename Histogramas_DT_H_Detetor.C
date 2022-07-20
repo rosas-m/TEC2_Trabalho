@@ -1,9 +1,9 @@
 void Histogramas_DT_H_Detetor(TString root_file){ 
 
 // Seleção dos ficheiro de dados
-TFile *f = new TFile("AmberTarget_Run_1.root","READ");
+TFile *f = new TFile(root_file,"READ");
 
-TString root_file_save = "Distribuicao_temporal_Detetores"+root_file(15,16)+".root"; // criação da string para criar ficheiros root para cada ficheiro AmberTarget
+TString root_file_save = "Distribuicao_Temporal_Detetores"+root_file(15,16); // criação da string para criar ficheiros root para cada ficheiro AmberTarget
 
 // ficheiro onde iremos gravar os histogramas
 TFile *ficheiroGravar = new TFile(root_file_save,"RECREATE");
@@ -50,19 +50,21 @@ for (Int_t i = 0; i < Nentries; i++)
 	histoDetetor[detetorID]->Fill(particleTime); // com o detetorID obtemos o ID de detetor e adicionamos o tempo da particula
 }
 // criação da stack de histogramas para agrupar os histogramas dos detetores no mesmo grafico
-THStack *hs = new THStack("hs","Hits por tempo nos Detetores; tempo (ns); Quantidade de Hits");
-TCanvas *cs = new TCanvas("Hits por tempo dos detetores","Hits por tempo dos detetores",10,10,700,500);
+THStack *hs = new THStack("hs","Distribuicao temporal de Hits nos Detetores; Tempo (ns); Quantidade de Hits");
+TCanvas *cs = new TCanvas("Distribuicao temporal de Hits nos Detetores","Distribuicao temporal de Hits nos Detetores",10,10,700,500);
 TText T; T.SetTextFont(42); T.SetTextAlign(21);
-
+auto legend = new TLegend(0.15,0.65,0.35,0.85);
 // adição dos histogramas á stack
 for (Int_t i = 0; i < nHistos;i++)
 {
 	histoDetetor[i]->SetFillColor(i+1);
 	histoDetetor[i]->SetLineColor(i+1);
 	hs->Add(histoDetetor[i]);
+	legend->AddEntry(histoDetetor[i],"Detector " + TString::Itoa(i, 10),"l");
 	histoDetetor[i]->Write(); // guardar os histogramas no ficheiro root
 }
 hs->Draw("noclear");
-cs->BuildLegend();
+legend->Draw();
+cs->SaveAs("/home/rosas/Desktop/TEC2_Trabalho/Graphs/Distribuicao_Temporal_Detetores"+root_file(15,16)+".png");
 
 }
